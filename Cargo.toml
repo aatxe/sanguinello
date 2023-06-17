@@ -1,0 +1,8 @@
+[package]
+name = "sanguinello"
+version = "0.0.0"
+authors = ["aaron weiss <aweiss@hey.com>"]
+license = "BSD-2-Clause"
+edition = "2021"
+
+[dependencies]
