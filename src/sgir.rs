@@ -19,13 +19,37 @@ pub struct TypeBinding {
 
 #[derive(Clone, Debug)]
 pub enum Type {
-    TypeVariable(Identifier),
+    Variable(Identifier),
     ForAll {
-        args: Vec<TypeBinding>,
+        parameters: Vec<TypeBinding>,
         typ: Box<Type>,
+    },
+    Instantiate {
+        typ: Box<Type>,
+        arguments: Vec<Type>,
     },
     Boolean,
     Number,
+}
+
+type KindEnv = HashMap<Identifier, Kind>;
+
+fn compute_kinds(kenv: &KindEnv, typ: Type) -> Kind {
+    match typ {
+        Type::Variable(id) => kenv[&id].clone(),
+        Type::Instantiate { typ, arguments } => match *typ {
+            Type::ForAll { parameters, typ } => {
+                let mut extended_kenv = kenv.clone();
+                extended_kenv.extend(parameters.into_iter()
+                                      .zip(arguments.into_iter())
+                                      .map(|(param, arg)| (param.id, compute_kinds(kenv, arg))));
+                // lol i should actually check that the arguments match
+                compute_kinds(&extended_kenv, *typ)
+            },
+            _ => panic!("this is not a quantifier")
+        }
+        _ => Kind::Star,
+    }
 }
 
 #[derive(Clone, Debug)]

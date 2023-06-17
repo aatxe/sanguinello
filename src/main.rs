@@ -10,7 +10,7 @@ fn main() {
         function: Box::new(Function {
             parameters: vec![
                 Binding { id: "chucc".to_owned(), typ: Type::Number },
-                Binding { id: "awe".to_owned(), typ: Type::Number },
+                Binding { id: "awe".to_owned(), typ: Type::Boolean },
                 Binding { id: "alex!".to_owned(), typ: Type::Number },
                 Binding { id: "j".to_owned(), typ: Type::Number },
             ],
@@ -18,7 +18,7 @@ fn main() {
         }),
         arguments: vec![
             Number(420),
-            Number(11),
+            Boolean(true),
             Function {
                 parameters: vec![Binding { id: "x".to_owned(), typ: Type::Number }],
                 body: Box::new(Variable("x".to_owned())),
