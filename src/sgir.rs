@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 type Identifier = String;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Kind {
     Star,
     Arrow {
@@ -34,21 +34,31 @@ pub enum Type {
 
 type KindEnv = HashMap<Identifier, Kind>;
 
-fn compute_kinds(kenv: &KindEnv, typ: Type) -> Kind {
+struct KindMismatch {
+    expected: Kind,
+    found: Kind,
+}
+type KC<T> = Result<T, KindMismatch>;
+
+fn check_kinds(kenv: &KindEnv, typ: Type) -> KC<Kind> {
     match typ {
-        Type::Variable(id) => kenv[&id].clone(),
+        Type::Variable(id) => Ok(kenv[&id].clone()),
         Type::Instantiate { typ, arguments } => match *typ {
             Type::ForAll { parameters, typ } => {
                 let mut extended_kenv = kenv.clone();
-                extended_kenv.extend(parameters.into_iter()
-                                      .zip(arguments.into_iter())
-                                      .map(|(param, arg)| (param.id, compute_kinds(kenv, arg))));
-                // lol i should actually check that the arguments match
-                compute_kinds(&extended_kenv, *typ)
+                for (param, arg) in parameters.into_iter().zip(arguments.into_iter()) {
+                    let kind = check_kinds(kenv, arg)?;
+                    if kind != param.kind {
+                        return Err(KindMismatch { expected: param.kind, found: kind });
+                    }
+                    extended_kenv.insert(param.id, kind);
+                }
+
+                check_kinds(&extended_kenv, *typ)
             },
             _ => panic!("this is not a quantifier")
         }
-        _ => Kind::Star,
+        _ => Ok(Kind::Star),
     }
 }
 
