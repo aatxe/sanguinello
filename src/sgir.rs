@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use thiserror::Error;
 
 type Identifier = String;
 
@@ -11,13 +12,13 @@ pub enum Kind {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct TypeBinding {
     pub id: Identifier,
     pub kind: Kind,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Type {
     /// a type variable, e.g. `T`
     Variable(Identifier),
@@ -46,19 +47,33 @@ pub enum Type {
     Number,
 }
 
-type KindEnv = HashMap<Identifier, Kind>;
+#[derive(Debug, Error, Clone, PartialEq)]
+enum TypeError {
+    #[error("kind mismatch: expected {expected:?}, found {found:?}")]
+    KindMismatch {
+        expected: Kind,
+        found: Kind,
+    },
 
-#[derive(Clone, Debug, PartialEq)]
-struct KindMismatch {
-    expected: Kind,
-    found: Kind,
+    #[error("kind mismatch: expected a quantifier in type {found:?}")]
+    ExpectedQuantifier {
+        found: Type,
+    },
+
+    #[error("unbound identifier: {0}")]
+    UnboundIdentifier(Identifier),
 }
 
-type KC<T> = Result<T, KindMismatch>;
+type TC<T> = Result<T, TypeError>;
 
-fn check_kinds(kenv: &KindEnv, typ: Type) -> KC<Kind> {
+type KindEnv = HashMap<Identifier, Kind>;
+
+fn check_kinds(kenv: &KindEnv, typ: Type) -> TC<Kind> {
     match typ {
-        Type::Variable(id) => Ok(kenv[&id].clone()),
+        Type::Variable(id) => match kenv.get(&id) {
+            Some(kind) => Ok(kind.clone()),
+            None => Err(TypeError::UnboundIdentifier(id.clone())),
+        }
 
         Type::ForAll { parameters, typ } => {
             let from = parameters.iter()
@@ -73,17 +88,17 @@ fn check_kinds(kenv: &KindEnv, typ: Type) -> KC<Kind> {
             Ok(Kind::Arrow { from, to })
         }
 
-        Type::Instantiate { typ, arguments } => match check_kinds(&kenv, *typ)? {
+        Type::Instantiate { typ, arguments } => match check_kinds(&kenv, *typ.clone())? {
             Kind::Arrow{ from, to } => {
                 for (expected, argument) in from.into_iter().zip(arguments.into_iter()) {
                     let found = check_kinds(kenv, argument)?;
                     if expected != found {
-                        return Err(KindMismatch { expected, found })
+                        return Err(TypeError::KindMismatch { expected, found })
                     }
                 }
                 Ok(*to)
             }
-            Kind::Star => panic!("this is not quantified!"),
+            Kind::Star => Err(TypeError::ExpectedQuantifier { found: *typ }),
         }
 
         _ => Ok(Kind::Star),
@@ -175,12 +190,39 @@ mod tests {
 
     #[test]
     fn test_kind_checking_instantiated_polymorphic_identity_function() {
-        let typ =
-        Type::Instantiate { typ: Box::new(Type::ForAll { parameters: vec![TypeBinding { id: "a".to_owned(), kind: Kind::Star }],
-                                                         typ: Box::new(Type::Function { arguments: vec![Type::Variable("a".to_owned())],
-                                                                                        result: Box::new(Type::Variable("a".to_owned())) }) }),
-                            arguments: vec![Type::Number] };
+        let typ = Type::Instantiate { typ: Box::new(Type::ForAll { parameters: vec![TypeBinding { id: "a".to_owned(), kind: Kind::Star }],
+                                                                   typ: Box::new(Type::Function { arguments: vec![Type::Variable("a".to_owned())],
+                                                                                                  result: Box::new(Type::Variable("a".to_owned())) }) }),
+                                      arguments: vec![Type::Number] };
         let kind = check_kinds(&HashMap::new(), typ);
         assert_eq!(kind, Ok(Kind::Star));
+    }
+
+    #[test]
+    fn test_kind_checking_unbound_identifier() {
+        let typ = Type::Variable("foo".to_owned());
+        let kind = check_kinds(&HashMap::new(), typ);
+        assert_eq!(kind, Err(TypeError::UnboundIdentifier("foo".to_owned())));
+    }
+
+    #[test]
+    fn test_kind_checking_instantiated_monomorphic_type() {
+        let quantified_type = Type::Function { arguments: vec![Type::Number],
+                                               result: Box::new(Type::Number) };
+        let typ = Type::Instantiate { typ: Box::new(quantified_type.clone()),
+                                      arguments: vec![Type::Number] };
+        let kind = check_kinds(&HashMap::new(), typ);
+        assert_eq!(kind, Err(TypeError::ExpectedQuantifier { found: quantified_type }));
+    }
+
+    #[test]
+    fn test_kind_checking_instantiated_polymorphic_function_with_type_constructor() {
+        let typ = Type::Instantiate { typ: Box::new(Type::ForAll { parameters: vec![TypeBinding { id: "a".to_owned(), kind: Kind::Star }],
+                                                                   typ: Box::new(Type::Function { arguments: vec![Type::Variable("a".to_owned())],
+                                                                                                  result: Box::new(Type::Variable("a".to_owned())) }) }),
+                                      arguments: vec![Type::ForAll { parameters: vec![TypeBinding { id: "b".to_owned(), kind: Kind::Star }],
+                                                                     typ: Box::new(Type::Variable("b".to_owned())) }] };
+        let kind = check_kinds(&HashMap::new(), typ);
+        assert_eq!(kind, Err(TypeError::KindMismatch { expected: Kind::Star, found: Kind::Arrow { from: vec![Kind::Star], to: Box::new(Kind::Star) }}));
     }
 }
