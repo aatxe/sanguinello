@@ -1,10 +1,28 @@
-use crate::sgir::Binding;
+use crate::sgir::{Binding, TypeBinding};
 
 mod sgir;
 
 fn main() {
     use sgir::Expression::*;
-    use sgir::Type;
+    use sgir::{Kind, Type};
+
+    let identity = Quantify {
+        parameters: vec![TypeBinding { id: "X".to_owned(), kind: Kind::Star }],
+        body: Box::new(Function {
+            parameters: vec![Binding { id: "x".to_owned(), typ: Type::Variable("X".to_owned()) }],
+            body: Box::new(Variable("x".to_owned())),
+        }),
+    };
+
+    let application = Application {
+        function: Box::new(Instantiate {
+            function: Box::new(identity),
+            arguments: vec![Type::Number]
+        }),
+        arguments: vec![
+            Number(11)
+        ],
+    };
 
     let prog = Application {
         function: Box::new(Function {
@@ -17,7 +35,7 @@ fn main() {
             body: Box::new(Variable("alex!".to_owned())),
         }), // (number, boolean, number, number) -> number
         arguments: vec![
-            Number(420), // : number
+            application, // : number
             Boolean(true), // : boolean
             Application {
                 function: Box::new(Function {
