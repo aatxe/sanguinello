@@ -138,3 +138,24 @@ fn test_type_checking_polymorphic_identity_function() {
     let typ = check(identity);
     assert_eq!(typ, Ok(expected_type));
 }
+
+#[test]
+fn test_type_checking_instantiated_polymorphic_identity_function() {
+    let identity = Expression::Quantify {
+        parameters: vec![TypeBinding { id: "X".to_owned(), kind: Kind::Star }],
+        body: Box::new(Expression::Function {
+            parameters: vec![Binding { id: "x".to_owned(), typ: Type::Variable("X".to_owned()) }],
+            body: Box::new(Expression::Variable("x".to_owned())),
+        }),
+    };
+
+    let expr = Expression::Instantiate { function: Box::new(identity), arguments: vec![Type::Number] };
+
+    let expected_type = Type::Function {
+        arguments: vec![Type::Number],
+        result: Box::new(Type::Number),
+    };
+
+    let typ = check(expr);
+    assert_eq!(typ, Ok(expected_type));
+}
