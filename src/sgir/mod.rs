@@ -1,3 +1,7 @@
+//! This module implements `sgir`, an intermediate representation for sanguinello.
+//!
+//! It is based on System Fω with explicit typing.
+
 use std::collections::HashMap;
 use thiserror::Error;
 
@@ -8,7 +12,10 @@ type Identifier = String;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Kind {
+    /// The type of types.
     Star,
+
+    /// A type constructor, or type function.
     Arrow {
         from: Vec<Kind>,
         to: Box<Kind>,
@@ -31,6 +38,7 @@ pub enum Type {
         parameters: Vec<TypeBinding>,
         typ: Box<Type>,
     },
+
     /// type instantiation, e.g. T<U...>
     Instantiate {
         typ: Box<Type>,
@@ -44,18 +52,31 @@ pub enum Type {
         arguments: Vec<Type>,
         result: Box<Type>,
     },
+
     /// a boolean
     Boolean,
+
     /// a number
     Number,
 }
 
 #[derive(Debug, Error, Clone, PartialEq)]
-enum TypeError {
+pub enum TypeError {
     #[error("kind mismatch: expected {expected:?}, found {found:?}")]
     KindMismatch {
         expected: Kind,
         found: Kind,
+    },
+
+    #[error("type mismatch: expected {expected:?}, found {found:?}")]
+    TypeMismatch {
+        expected: Type,
+        found: Type,
+    },
+
+    #[error("cannot call a non-function: {found:?}")]
+    CannotCallNonFunction {
+        found: Type,
     },
 
     #[error("kind mismatch: expected a quantifier in type {found:?}")]
@@ -67,7 +88,7 @@ enum TypeError {
     UnboundIdentifier(Identifier),
 }
 
-type TC<T> = Result<T, TypeError>;
+pub type TC<T> = Result<T, TypeError>;
 
 type KindEnv = HashMap<Identifier, Kind>;
 
@@ -131,6 +152,65 @@ pub enum Expression {
         function: Box<Expression>,
         arguments: Vec<Expression>,
     },
+}
+
+type TypeEnv = HashMap<Identifier, Type>;
+
+fn check_type(tenv: &TypeEnv, kenv: &KindEnv, expr: Expression) -> TC<Type> {
+    match expr {
+        Expression::Variable(id) =>  match tenv.get(&id) {
+            Some(ty) => Ok(ty.clone()),
+            None => Err(TypeError::UnboundIdentifier(id.clone())),
+        },
+
+        Expression::Boolean(_) => Ok(Type::Boolean),
+
+        Expression::Number(_) => Ok(Type::Number),
+
+        Expression::Function { parameters, body } => {
+            for Binding { typ, .. } in parameters.iter() {
+                if let kind@Kind::Arrow { .. } = check_kinds(kenv, typ.clone())? {
+                    return Err(TypeError::KindMismatch { expected: Kind::Star, found: kind })
+                }
+            }
+
+            let arguments = parameters.iter()
+                                      .map(|Binding { typ, .. }| typ.clone())
+                                      .collect();
+
+            let mut extended_tenv = tenv.clone();
+            extended_tenv.extend(parameters.into_iter()
+                                 .map(|Binding { id, typ }| (id, typ)));
+            let result = Box::new(check_type(&extended_tenv, &kenv, *body)?);
+
+            Ok(Type::Function { arguments, result })
+        },
+
+        Expression::Application { function, arguments } => {
+            match check_type(tenv, kenv, *function)? {
+                Type::Function { arguments: argument_types, result: result_type } => {
+                    for (argument, argument_type) in arguments.into_iter().zip(argument_types) {
+                        let computed_type = check_type(tenv, kenv, argument)?;
+
+                        if computed_type != argument_type {
+                            return Err(TypeError::TypeMismatch { expected: argument_type, found: computed_type })
+                        }
+                    }
+
+                    Ok(*result_type)
+                },
+
+                // Unexpected type here, it must be a function!
+                found => Err(TypeError::CannotCallNonFunction { found })
+            }
+        },
+    }
+}
+
+pub fn check(expr: Expression) -> TC<Type> {
+    let type_env = HashMap::new();
+    let kind_env = HashMap::new();
+    check_type(&type_env, &kind_env, expr)
 }
 
 #[derive(Clone, Debug)]

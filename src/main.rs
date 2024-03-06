@@ -15,17 +15,29 @@ fn main() {
                 Binding { id: "j".to_owned(), typ: Type::Number },
             ],
             body: Box::new(Variable("alex!".to_owned())),
-        }),
+        }), // (number, boolean, number, number) -> number
         arguments: vec![
-            Number(420),
-            Boolean(true),
-            Function {
-                parameters: vec![Binding { id: "x".to_owned(), typ: Type::Number }],
-                body: Box::new(Variable("x".to_owned())),
-            },
-            Number(694208008135),
+            Number(420), // : number
+            Boolean(true), // : boolean
+            Application {
+                function: Box::new(Function {
+                    parameters: vec![Binding { id: "x".to_owned(), typ: Type::Number }],
+                    body: Box::new(Variable("x".to_owned())),
+                }), // : (number) -> number
+                arguments: vec![Number(42)], // : number
+            }, // : number
+            Number(694208008135), // : number
         ]
     };
+
+    let typ = match sgir::check(prog.clone()) {
+        Ok(typ) => typ,
+        Err(type_error) => {
+            eprintln!("[ERROR] {:?}", type_error);
+            return
+        },
+    };
+    println!("TYPE: {:?}", typ);
 
     let result = sgir::run(prog);
     println!("{:?}", result);
