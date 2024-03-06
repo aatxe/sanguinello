@@ -116,3 +116,25 @@ fn test_type_check_apply_identity_function_mismatch() {
     let typ = check(expr);
     assert_eq!(typ, Err(TypeError::TypeMismatch { expected: Type::Number, found: Type::Boolean }));
 }
+
+#[test]
+fn test_type_checking_polymorphic_identity_function() {
+    let identity = Expression::Quantify {
+        parameters: vec![TypeBinding { id: "X".to_owned(), kind: Kind::Star }],
+        body: Box::new(Expression::Function {
+            parameters: vec![Binding { id: "x".to_owned(), typ: Type::Variable("X".to_owned()) }],
+            body: Box::new(Expression::Variable("x".to_owned())),
+        }),
+    };
+
+    let expected_type = Type::ForAll {
+        parameters: vec![TypeBinding { id: "X".to_owned(), kind: Kind::Star }],
+        typ: Box::new(Type::Function {
+            arguments: vec![Type::Variable("X".to_owned())],
+            result: Box::new(Type::Variable("X".to_owned())),
+        }),
+    };
+
+    let typ = check(identity);
+    assert_eq!(typ, Ok(expected_type));
+}

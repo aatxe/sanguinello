@@ -232,13 +232,13 @@ fn check_type(tenv: &TypeEnv, kenv: &KindEnv, expr: Expression) -> TC<Type> {
 
         Expression::Quantify { parameters, body } => {
             let mut extended_kenv = kenv.clone();
-            extended_kenv.extend(parameters.into_iter()
+            extended_kenv.extend(parameters.clone().into_iter()
                                  .map(|TypeBinding { id, kind }| (id, kind)));
 
             let typ = check_type(tenv, &extended_kenv, *body)?;
             match check_kinds(kenv, typ.clone())? {
                 // the resulting type is a type...
-                Kind::Star => Ok(typ),
+                Kind::Star => Ok(Type::ForAll { parameters , typ: Box::new(typ) }),
 
                 // the resulting type is a type function...
                 kind => Err(TypeError::KindMismatch { expected: Kind::Star, found: kind }),
