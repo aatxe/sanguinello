@@ -24,6 +24,8 @@ pub enum Token {
     ReservedElseif,
     /// `end`
     ReservedEnd,
+    /// `export`
+    ReservedExport,
     /// `for`
     ReservedFor,
     /// `function`
@@ -32,10 +34,14 @@ pub enum Token {
     ReservedFn,
     /// `if`
     ReservedIf,
+    /// `import`
+    ReservedImport,
     /// `in`
     ReservedIn,
     /// `let`
     ReservedLet,
+    /// `module`
+    ReservedModule,
     /// `nil`
     ReservedNil,
     /// `not`
@@ -48,6 +54,8 @@ pub enum Token {
     ReservedReturn,
     /// `then`
     ReservedThen,
+    /// `type`
+    ReservedType,
     /// `until`
     ReservedUntil,
     /// `while`
