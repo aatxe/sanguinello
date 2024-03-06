@@ -53,3 +53,66 @@ fn test_kind_checking_instantiated_polymorphic_function_with_type_constructor() 
     let kind = check_kinds(&HashMap::new(), typ);
     assert_eq!(kind, Err(TypeError::KindMismatch { expected: Kind::Star, found: Kind::Arrow { from: vec![Kind::Star], to: Box::new(Kind::Star) }}));
 }
+
+#[test]
+fn test_type_check_basic_number() {
+    let expr = Expression::Number(42);
+
+    let typ = check(expr);
+    assert_eq!(typ, Ok(Type::Number));
+}
+
+#[test]
+fn test_type_check_basic_boolean() {
+    let expr = Expression::Boolean(true);
+
+    let typ = check(expr);
+    assert_eq!(typ, Ok(Type::Boolean));
+}
+
+#[test]
+fn test_type_check_identity_function() {
+    let expr = Expression::Function {
+        parameters: vec![Binding { id: "x".to_owned(), typ: Type::Number }],
+        body: Box::new(Expression::Variable("x".to_owned())),
+    };
+
+    let typ = check(expr);
+    assert_eq!(typ, Ok(Type::Function { arguments: vec![Type::Number], result: Box::new(Type::Number) }));
+}
+
+#[test]
+fn test_type_check_apply_identity_function() {
+    let identity = Expression::Function {
+        parameters: vec![Binding { id: "x".to_owned(), typ: Type::Number }],
+        body: Box::new(Expression::Variable("x".to_owned())),
+    };
+
+    let expr = Expression::Application {
+        function: Box::new(identity),
+        arguments: vec![
+            Expression::Number(42),
+        ],
+    };
+
+    let typ = check(expr);
+    assert_eq!(typ, Ok(Type::Number));
+}
+
+#[test]
+fn test_type_check_apply_identity_function_mismatch() {
+    let identity = Expression::Function {
+        parameters: vec![Binding { id: "x".to_owned(), typ: Type::Number }],
+        body: Box::new(Expression::Variable("x".to_owned())),
+    };
+
+    let expr = Expression::Application {
+        function: Box::new(identity),
+        arguments: vec![
+            Expression::Boolean(false),
+        ],
+    };
+
+    let typ = check(expr);
+    assert_eq!(typ, Err(TypeError::TypeMismatch { expected: Type::Number, found: Type::Boolean }));
+}
