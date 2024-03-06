@@ -1,5 +1,6 @@
 use crate::sgir::{Binding, TypeBinding};
 
+mod lexer;
 mod sgir;
 
 fn main() {
