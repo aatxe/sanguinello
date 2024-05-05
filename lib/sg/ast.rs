@@ -59,6 +59,12 @@ pub enum Operator {
 pub struct Type;
 
 #[derive(PartialEq, Debug, Clone)]
+pub struct TypeBinding {
+    key: Optional<Identifier>,
+    value: Optional<Type>,
+}
+
+#[derive(PartialEq, Debug, Clone)]
 pub struct Binding {
     pub name: Identifier,
     pub typ: Option<Type>,
@@ -89,6 +95,7 @@ pub enum Expression {
     /// { key = value, key = value, key = value }
     /// ```
     Table {
+        types: Vec<TypeBinding>,
         elements: Vec<Property>,
     },
 
@@ -246,6 +253,46 @@ pub enum Statement {
     Local {
         binding: Binding,
         expression: Optional<Expression>,
+    },
+
+    /// ```sg
+    /// export binding
+    /// export binding = expr
+    /// ```
+    Export {
+        binding: Binding,
+        expression: Optional<Expression>,
+    },
+
+    /// ```sg
+    /// module binding do
+    ///   type key = value
+    ///   type key = value
+    ///   type key = value
+    ///
+    ///   key = value,
+    ///   key = value,
+    ///   key = value,
+    /// end
+    /// ```
+    /// which is syntactic sugar for
+    /// ```sg
+    /// local binding = {
+    ///   type key = value
+    ///   type key = value
+    ///   type key = value
+    ///
+    ///   key = value,
+    ///   key = value,
+    ///   key = value,
+    /// }
+    /// ```
+    /// or `export module name of type` which expands the same but with `export`.
+    Module {
+        exported: bool,
+        binding: Binding,
+        types: Vec<TypeBinding>,
+        elements: Vec<Property>,
     },
 
     /// ```sg
