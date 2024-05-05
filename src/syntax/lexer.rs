@@ -10,8 +10,7 @@ use std::str;
 use std::str::FromStr;
 use std::str::Utf8Error;
 
-pub mod token;
-use crate::lexer::token::*;
+use crate::syntax::tokens::*;
 
 macro_rules! syntax {
     ($func_name: ident, $tag_string: literal, $output_token: expr) => {

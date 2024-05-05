@@ -1,7 +1,7 @@
 use crate::sgir::{Binding, TypeBinding};
 
-mod lexer;
 mod sgir;
+mod syntax;
 
 fn main() {
     use sgir::Expression::*;
