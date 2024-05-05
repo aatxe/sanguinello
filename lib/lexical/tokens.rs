@@ -38,8 +38,10 @@ pub enum Token {
     ReservedImport,
     /// `in`
     ReservedIn,
-    /// `let`
-    ReservedLet,
+    /// `local`
+    ReservedLocal,
+    /// `match`
+    ReservedMatch,
     /// `module`
     ReservedModule,
     /// `nil`
@@ -70,6 +72,8 @@ pub enum Token {
     Divide,
     /// `*`
     Multiply,
+    /// `//`
+    FloorDivide,
     /// `==`
     Equal,
     /// `~=`

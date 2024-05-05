@@ -10,7 +10,7 @@ use std::str;
 use std::str::FromStr;
 use std::str::Utf8Error;
 
-use crate::syntax::tokens::*;
+use crate::lexical::tokens::*;
 
 macro_rules! syntax {
     ($func_name: ident, $tag_string: literal, $output_token: expr) => {
@@ -26,6 +26,7 @@ syntax! {plus_operator, "+", Token::Plus}
 syntax! {minus_operator, "-", Token::Minus}
 syntax! {multiply_operator, "*", Token::Multiply}
 syntax! {divide_operator, "/", Token::Divide}
+syntax! {floor_divide_operator, "//", Token::FloorDivide}
 syntax! {greater_operator_equal, ">=", Token::GreaterThanEqual}
 syntax! {lesser_operator_equal, "<=", Token::LessThanEqual}
 syntax! {greater_operator, ">", Token::GreaterThan}
@@ -42,6 +43,7 @@ pub fn lex_operator(input: &[u8]) -> IResult<&[u8], Token> {
         minus_operator,
         multiply_operator,
         divide_operator,
+        floor_divide_operator,
         not_operator,
         greater_operator_equal,
         lesser_operator_equal,
@@ -125,7 +127,8 @@ fn lex_reserved_ident(input: &[u8]) -> IResult<&[u8], Token> {
                 "if" => Token::ReservedIf,
                 "import" => Token::ReservedImport,
                 "in" => Token::ReservedIn,
-                "let" => Token::ReservedLet,
+                "local" => Token::ReservedLocal,
+                "match" => Token::ReservedMatch,
                 "module" => Token::ReservedModule,
                 "nil" => Token::ReservedNil,
                 "not" => Token::ReservedNot,
