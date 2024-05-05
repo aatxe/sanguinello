@@ -6,7 +6,7 @@ pub enum Token {
     Identifier(String),
 
     // literals
-    NumberLiteral(i64),
+    NumberLiteral(f64),
     BooleanLiteral(bool),
 
     // reserved words
