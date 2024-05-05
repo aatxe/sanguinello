@@ -1,11 +1,8 @@
-use crate::sgir::{Binding, TypeBinding};
-
-mod sgir;
-mod syntax;
+use sanguinello::sgir::{Binding, TypeBinding};
 
 fn main() {
-    use sgir::Expression::*;
-    use sgir::{Kind, Type};
+    use sanguinello::sgir::Expression::*;
+    use sanguinello::sgir::{Kind, Type};
 
     let identity = Quantify {
         parameters: vec![TypeBinding { id: "X".to_owned(), kind: Kind::Star }],
@@ -49,7 +46,7 @@ fn main() {
         ]
     };
 
-    let typ = match sgir::check(prog.clone()) {
+    let typ = match sanguinello::sgir::check(prog.clone()) {
         Ok(typ) => typ,
         Err(type_error) => {
             eprintln!("[ERROR] {:?}", type_error);
@@ -58,6 +55,6 @@ fn main() {
     };
     println!("TYPE: {:?}", typ);
 
-    let result = sgir::run(prog);
+    let result = sanguinello::sgir::run(prog);
     println!("{:?}", result);
 }
