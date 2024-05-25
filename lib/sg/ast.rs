@@ -335,4 +335,10 @@ pub enum Statement {
     /// continue
     /// ```
     Continue,
+
+    /// ```sg
+    /// return expr
+    /// return
+    /// ```
+    Return(Optional<Expression>),
 }
