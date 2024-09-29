@@ -10,5 +10,6 @@ name = "sanguinello"
 path = "lib/sanguinello.rs"
 
 [dependencies]
+bumpalo = { version = "3.16.0", features = ["std", "serde", "boxed", "collections"] }
 nom = "7.1.3"
 thiserror = "1.0.40"

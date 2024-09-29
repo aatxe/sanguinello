@@ -1,4 +1,7 @@
-type Optional<T> = Option<Box<T>>;
+use bumpalo::boxed::Box;
+use bumpalo::collections::Vec;
+
+type Optional<'a, T> = Option<Box<'a, T>>;
 
 #[derive(PartialEq, Debug, Eq, Clone)]
 pub struct Identifier(pub String);
@@ -10,11 +13,11 @@ pub struct Identifier(pub String);
 /// @library/module/submodule
 /// ```
 #[derive(PartialEq, Debug, Eq, Clone)]
-pub struct Path {
+pub struct Path<'a> {
     /// The unprefixed root of the path, `None` for `@`.
     root: Option<Identifier>,
     /// Fragments of the path separated by `/`
-    fragments: Vec<Identifier>,
+    fragments: Vec<'a, Identifier>,
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -58,10 +61,10 @@ pub enum Operator {
 #[derive(PartialEq, Debug, Clone)]
 pub struct Type;
 
-#[derive(PartialEq, Debug, Clone)]
-pub struct TypeBinding {
-    key: Optional<Identifier>,
-    value: Optional<Type>,
+#[derive(PartialEq, Debug)]
+pub struct TypeBinding<'a> {
+    key: Optional<'a, Identifier>,
+    value: Optional<'a, Type>,
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -72,22 +75,22 @@ pub struct Binding {
 
 /// A `Block` is a series of `Statement`s followed by an optional `Expression`
 /// that the `Block` takes the value of when evaluated.
-#[derive(PartialEq, Debug, Clone)]
-pub struct Block {
-    statements: Vec<Statement>,
-    expression: Optional<Expression>,
+#[derive(PartialEq, Debug)]
+pub struct Block<'a> {
+    statements: Vec<'a, Statement<'a>>,
+    expression: Optional<'a, Expression<'a>>,
 }
 
 /// A `Property` is a key-value pair written either as `string_key = expression` or
 /// as `[key_expression] = expression`.
-#[derive(PartialEq, Debug, Clone)]
-pub struct Property {
-    key: Optional<Expression>,
-    value: Optional<Expression>,
+#[derive(PartialEq, Debug)]
+pub struct Property<'a> {
+    key: Optional<'a, Expression<'a>>,
+    value: Optional<'a, Expression<'a>>,
 }
 
-#[derive(PartialEq, Debug, Clone)]
-pub enum Expression {
+#[derive(PartialEq, Debug)]
+pub enum Expression<'a> {
     Identifier(Identifier),
     Literal(Literal),
 
@@ -95,15 +98,15 @@ pub enum Expression {
     /// { key = value, key = value, key = value }
     /// ```
     Table {
-        types: Vec<TypeBinding>,
-        elements: Vec<Property>,
+        types: Vec<'a, TypeBinding<'a>>,
+        elements: Vec<'a, Property<'a>>,
     },
 
     /// ```sg
     /// [e1, e2, e3]
     /// ```
     Array {
-        elements: Vec<Expression>,
+        elements: Vec<'a, Expression<'a>>,
     },
 
     /// ```sg
@@ -111,22 +114,22 @@ pub enum Expression {
     /// e1, e2, e3
     /// ```
     Tuple {
-        elements: Vec<Expression>,
+        elements: Vec<'a, Expression<'a>>,
     },
 
     /// ```sg
     /// e1[e2]
     /// ```
     Index {
-        value: Optional<Expression>,
-        key: Optional<Expression>,
+        value: Optional<'a, Expression<'a>>,
+        key: Optional<'a, Expression<'a>>,
     },
 
     /// ```sg
     /// e1.string_key
     /// ```
     Project {
-        value: Optional<Expression>,
+        value: Optional<'a, Expression<'a>>,
         key: Identifier,
     },
 
@@ -136,7 +139,7 @@ pub enum Expression {
     /// ```
     UnaryOperator {
         operator: Operator,
-        operand: Optional<Expression>,
+        operand: Optional<'a, Expression<'a>>,
     },
 
     /// ```sg
@@ -144,10 +147,10 @@ pub enum Expression {
     /// a and b
     /// a ~= b
     /// ```
-    BinaryOperator{
+    BinaryOperator {
         operator: Operator,
-        left_operand: Optional<Expression>,
-        right_operand: Optional<Expression>,
+        left_operand: Optional<'a, Expression<'a>>,
+        right_operand: Optional<'a, Expression<'a>>,
     },
 
     /// ```sg
@@ -158,7 +161,7 @@ pub enum Expression {
     Function {
         name: Option<Identifier>,
         parameter: Option<Binding>,
-        body: Optional<Block>,
+        body: Optional<'a, Block<'a>>,
     },
 
     /// ```sg
@@ -173,8 +176,8 @@ pub enum Expression {
     /// function {argument}
     /// ```
     Application {
-        function: Optional<Expression>,
-        argument: Optional<Expression>,
+        function: Optional<'a, Expression<'a>>,
+        argument: Optional<'a, Expression<'a>>,
     },
 
     /// ```sg
@@ -189,9 +192,9 @@ pub enum Expression {
     /// e1:e2 {argument}
     /// ```
     ProjectApplication {
-        value: Optional<Expression>,
+        value: Optional<'a, Expression<'a>>,
         key: Identifier,
-        argument: Optional<Expression>,
+        argument: Optional<'a, Expression<'a>>,
     },
 
     /// ```sg
@@ -208,9 +211,9 @@ pub enum Expression {
     /// end
     /// ```
     If {
-        condition: Optional<Expression>,
-        consequent: Block,
-        antecedent: Block,
+        condition: Optional<'a, Expression<'a>>,
+        consequent: Block<'a>,
+        antecedent: Block<'a>,
     },
 
     /// ```sg
@@ -220,21 +223,21 @@ pub enum Expression {
     ///     expr
     /// end
     /// ```
-    Block(Block),
+    Block(Block<'a>),
 }
 
-#[derive(PartialEq, Debug, Clone)]
-pub enum Statement {
+#[derive(PartialEq, Debug)]
+pub enum Statement<'a> {
     /// ```sg
     /// expr
     /// ```
-    Expression(Expression),
+    Expression(Expression<'a>),
 
     /// ```sg
     /// import @/module/submodule
     /// import @library/module/submodule
     /// ```
-    Import(Path),
+    Import(Path<'a>),
 
     /// ```sg
     /// export type Foo = Bar
@@ -252,7 +255,7 @@ pub enum Statement {
     /// ```
     Local {
         binding: Binding,
-        expression: Optional<Expression>,
+        expression: Optional<'a, Expression<'a>>,
     },
 
     /// ```sg
@@ -261,7 +264,7 @@ pub enum Statement {
     /// ```
     Export {
         binding: Binding,
-        expression: Optional<Expression>,
+        expression: Optional<'a, Expression<'a>>,
     },
 
     /// ```sg
@@ -291,8 +294,8 @@ pub enum Statement {
     Module {
         exported: bool,
         binding: Binding,
-        types: Vec<TypeBinding>,
-        elements: Vec<Property>,
+        types: Vec<'a, TypeBinding<'a>>,
+        elements: Vec<'a, Property<'a>>,
     },
 
     /// ```sg
@@ -302,8 +305,8 @@ pub enum Statement {
     /// ```
     ForIn {
         binding: Binding,
-        iterator: Optional<Expression>,
-        body: Optional<Block>,
+        iterator: Optional<'a, Expression<'a>>,
+        body: Optional<'a, Block<'a>>,
     },
 
     /// ```sg
@@ -312,8 +315,8 @@ pub enum Statement {
     /// end
     /// ```
     While {
-        condition: Optional<Expression>,
-        body: Optional<Block>,
+        condition: Optional<'a, Expression<'a>>,
+        body: Optional<'a, Block<'a>>,
     },
 
     /// ```sg
@@ -322,8 +325,8 @@ pub enum Statement {
     /// until expr
     /// ```
     RepeatUntil {
-        body: Optional<Block>,
-        condition: Optional<Expression>,
+        body: Optional<'a, Block<'a>>,
+        condition: Optional<'a, Expression<'a>>,
     },
 
     /// ```sg
@@ -340,5 +343,5 @@ pub enum Statement {
     /// return expr
     /// return
     /// ```
-    Return(Optional<Expression>),
+    Return(Optional<'a, Expression<'a>>),
 }
