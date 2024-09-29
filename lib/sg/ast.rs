@@ -1,10 +1,9 @@
-use bumpalo::boxed::Box;
 use bumpalo::collections::Vec;
 
-type Optional<'a, T> = Option<Box<'a, T>>;
+type Optional<'a, T> = Option<&'a T>;
 
 #[derive(PartialEq, Debug, Eq, Clone)]
-pub struct Identifier(pub String);
+pub struct Identifier<'a>(pub &'a str);
 
 /// ```sg
 /// @
@@ -15,9 +14,9 @@ pub struct Identifier(pub String);
 #[derive(PartialEq, Debug, Eq, Clone)]
 pub struct Path<'a> {
     /// The unprefixed root of the path, `None` for `@`.
-    root: Option<Identifier>,
+    root: Option<Identifier<'a>>,
     /// Fragments of the path separated by `/`
-    fragments: Vec<'a, Identifier>,
+    fragments: Vec<'a, Identifier<'a>>,
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -41,12 +40,13 @@ pub enum Literal {
     Boolean(bool),
 }
 
-#[derive(PartialEq, Debug, Eq, Clone)]
+#[derive(PartialEq, Debug, Eq, Clone, Copy)]
 pub enum Operator {
     Plus,
     Minus,
     Divide,
     Multiply,
+    FloorDivide,
     Equal,
     NotEqual,
     GreaterThanEqual,
@@ -61,15 +61,21 @@ pub enum Operator {
 #[derive(PartialEq, Debug, Clone)]
 pub struct Type;
 
+/// ```sg
+/// type name = type
+/// ```
 #[derive(PartialEq, Debug)]
 pub struct TypeBinding<'a> {
-    key: Optional<'a, Identifier>,
+    key: Optional<'a, Identifier<'a>>,
     value: Optional<'a, Type>,
 }
 
+/// ```sg
+/// local name: type
+/// ```
 #[derive(PartialEq, Debug, Clone)]
-pub struct Binding {
-    pub name: Identifier,
+pub struct Binding<'a> {
+    pub name: Identifier<'a>,
     pub typ: Option<Type>,
 }
 
@@ -85,13 +91,13 @@ pub struct Block<'a> {
 /// as `[key_expression] = expression`.
 #[derive(PartialEq, Debug)]
 pub struct Property<'a> {
-    key: Optional<'a, Expression<'a>>,
-    value: Optional<'a, Expression<'a>>,
+    pub(crate) key: Optional<'a, Expression<'a>>,
+    pub(crate) value: Optional<'a, Expression<'a>>,
 }
 
 #[derive(PartialEq, Debug)]
 pub enum Expression<'a> {
-    Identifier(Identifier),
+    Identifier(Identifier<'a>),
     Literal(Literal),
 
     /// ```sg
@@ -130,7 +136,7 @@ pub enum Expression<'a> {
     /// ```
     Project {
         value: Optional<'a, Expression<'a>>,
-        key: Identifier,
+        key: Identifier<'a>,
     },
 
     /// ```sg
@@ -159,8 +165,8 @@ pub enum Expression<'a> {
     /// end
     /// ```
     Function {
-        name: Option<Identifier>,
-        parameter: Option<Binding>,
+        name: Option<Identifier<'a>>,
+        parameter: Option<Binding<'a>>,
         body: Optional<'a, Block<'a>>,
     },
 
@@ -193,7 +199,7 @@ pub enum Expression<'a> {
     /// ```
     ProjectApplication {
         value: Optional<'a, Expression<'a>>,
-        key: Identifier,
+        key: Identifier<'a>,
         argument: Optional<'a, Expression<'a>>,
     },
 
@@ -245,7 +251,7 @@ pub enum Statement<'a> {
     /// ```
     TypeAlias {
         exported: bool,
-        name: Identifier,
+        name: Identifier<'a>,
         definition: Type,
     },
 
@@ -254,7 +260,7 @@ pub enum Statement<'a> {
     /// local binding = expr
     /// ```
     Local {
-        binding: Binding,
+        binding: Binding<'a>,
         expression: Optional<'a, Expression<'a>>,
     },
 
@@ -263,7 +269,7 @@ pub enum Statement<'a> {
     /// export binding = expr
     /// ```
     Export {
-        binding: Binding,
+        binding: Binding<'a>,
         expression: Optional<'a, Expression<'a>>,
     },
 
@@ -293,7 +299,7 @@ pub enum Statement<'a> {
     /// or `export module name of type` which expands the same but with `export`.
     Module {
         exported: bool,
-        binding: Binding,
+        binding: Binding<'a>,
         types: Vec<'a, TypeBinding<'a>>,
         elements: Vec<'a, Property<'a>>,
     },
@@ -304,7 +310,7 @@ pub enum Statement<'a> {
     /// end
     /// ```
     ForIn {
-        binding: Binding,
+        binding: Binding<'a>,
         iterator: Optional<'a, Expression<'a>>,
         body: Optional<'a, Block<'a>>,
     },

@@ -20,7 +20,7 @@ macro_rules! syntax {
     };
 }
 
-syntax! {equal_operator, "==", Token::Equal}
+syntax! {equal_operator, "==", Token::DoubleEqual}
 syntax! {not_equal_operator, "!=", Token::NotEqual}
 syntax! {plus_operator, "+", Token::Plus}
 syntax! {minus_operator, "-", Token::Minus}
@@ -72,6 +72,8 @@ syntax! {lbrace_punctuation, "{", Token::LBrace}
 syntax! {rbrace_punctuation, "}", Token::RBrace}
 syntax! {lbracket_punctuation, "[", Token::LBracket}
 syntax! {rbracket_punctuation, "]", Token::RBracket}
+syntax! {atsign_punctuation, "@", Token::AtSign}
+syntax! {equal_punctuation, "=", Token::Equal}
 
 pub fn lex_punctuations(input: &[u8]) -> IResult<&[u8], Token> {
     alt((
@@ -91,6 +93,8 @@ pub fn lex_punctuations(input: &[u8]) -> IResult<&[u8], Token> {
         rbrace_punctuation,
         lbracket_punctuation,
         rbracket_punctuation,
+        atsign_punctuation,
+        equal_punctuation,
     ))(input)
 }
 
@@ -141,7 +145,7 @@ fn lex_reserved_ident(input: &[u8]) -> IResult<&[u8], Token> {
                 "while" => Token::ReservedWhile,
 
                 // identifiers
-                _ => Token::Identifier(syntax.to_string()),
+                _ => Token::Identifier(syntax),
             })
         },
     )(input)
