@@ -26,11 +26,10 @@ stat = var '=' expr
      | 'break' | 'continue'
      | 'return' [expr]
 
-var = NAME | prefixexp
+varroot = NAME | '(' expr ')'
+varsuffix = [':' NAME] '(' [exprs] ')' | '.' NAME | '[' expr ']'
+var = varroot {varsuffix}
 vars = var {',' var}
-prefixexpr = var | functioncall | '(' expr ')'
-functioncall = prefixexpr '(' [exprs] ')'
-             | prefixexpr ':' NAME  '(' [exprs] ')'
 
 expr = unop expr { binop expr }
      | 'do' block 'end'
@@ -38,7 +37,7 @@ expr = unop expr { binop expr }
      | fnword ['<' generictypes '>'] '(' [parameters] ')' [ ':' type] block 'end'
      | simpleexpr '::' type
      | simpleexpr
-simpleexpr = prefixexpr
+simpleexpr = var
            | literal
 exprs = expr {separator expr} [separator]
 separator = ',' | ';'
