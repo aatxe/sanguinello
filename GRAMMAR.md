@@ -23,7 +23,8 @@ stat = var '=' expr
      | 'local' bindings '=' exprs
      | ['export'] typebinding
      | import | export
-     | 'break' | 'continue' | 'return'
+     | 'break' | 'continue'
+     | 'return' [expr]
 
 var = NAME | prefixexp
 vars = var {',' var}
