@@ -6,8 +6,7 @@ typebinding = 'type' NAME ['<' generictypeswithdefaults '>'] '=' type
 
 path = '@' [NAME]
      | path '/' NAME
--- i don't know how i feel about this import syntax
-import = 'local' binding '=' 'import' path
+import = 'import' binding '=' path
 export = 'export' bindings '=' exprs
 
 -- we could just pick one, i guess?
