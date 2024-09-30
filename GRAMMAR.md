@@ -32,7 +32,8 @@ prefixexpr = var | functioncall | '(' expr ')'
 functioncall = prefixexpr '(' [exprs] ')'
              | prefixexpr ':' NAME  '(' [exprs] ')'
 
-expr = 'do' block 'end'
+expr = unop expr { binop expr }
+     | 'do' block 'end'
      | 'if' expr 'then' block {'elseif' expr 'then' block} ['else' block] 'end'
      | fnword ['<' generictypes '>'] '(' [parameters] ')' [ ':' type] block 'end'
      | simpleexpr '::' type
