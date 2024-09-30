@@ -23,6 +23,7 @@ stat = var '=' expr
      | 'local' bindings '=' exprs
      | ['export'] typebinding
      | import | export
+     | expr
      | 'break' | 'continue'
      | 'return' [expr]
 
