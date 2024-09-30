@@ -12,7 +12,7 @@ export = 'export' bindings '=' exprs
 -- we could just pick one, i guess?
 fnword = 'fn' | 'function'
 
-block = {stat [';']} [expr]
+block = {stat [';'] NEWLINE} [expr]
 stat = var '=' expr
      | var compoundop expr
      | 'while' expr 'do' block 'end'
